@@ -2,7 +2,7 @@
 
 **Final Report · Group 7 · College of Technology, Faculty of Data Science and Artificial Intelligence, National Economics University, Hanoi**
 
-Course: Data Mining (DA) · Autumn 2026 · Instructor: Ph.D. Nguyễn Trọng *(placeholder)*
+Course: Data Mining (DA) · Autumn 2026 · National Economics University, Hanoi
 
 ---
 
