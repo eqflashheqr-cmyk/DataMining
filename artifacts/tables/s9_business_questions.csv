@@ -1,0 +1,8 @@
+#,Group,Question,Answer,Source
+KD #1,Detection,Model nao cho F1-score cao nhat tren tap test?,"Random Forest + SMOTE (1:100): F1 = 0.8605 (P 0.9569, R 0.7817)",S5/S6
+KD #2,Detection,Precision toi thieu 95% thi recall dat duoc bao nhieu?,"78.17% optimistic (thr 0.52) / 73.24% leakage-free (thr 0.65, OOF-tuned on train)","S7 (F7, F12)"
+KD #3,Detection,Dac trung nao (trong V1-V28 an danh) dong gop nhieu nhat?,"Amount (SHAP #1, perm #2), Amount_log (#2/#1), V14 (#3); Day vao top-5 SHAP",S8 (F18)
+KD #4,Operations,Review 100 giao dich/ngay: chi phi van hanh va tiet kiem duoc bao nhieu?,"Model flag 58/ngay (58% utilisation) — du capacity. Review cost $17.4/ngay = $6,350/nam. vs rule-based: model cat chi phi gian lan 89%",S9 cells 3-5
+KD #5,Operations,Ap dung cho tat ca giao dich hay chi giao dich tren nguong tien?,Score TAT CA. 100% gian lan co Amount <= $500; 31 FN deu la giao dich nho tien ($2-$240). Loc theo tien se mat ~toan bo FN. De xuat 2 tang,S9 cell 6 (F19)
+KD #6,Strategy,"Nhan rong: chi phi tinh toan tang bao nhieu, latency toi da cho phep?","0.048 ms/txn (RF) — headroom 4,167x so voi budget 200ms. 1M txns/ngay = 48 CPU-s/ngay. Compute cost < $1.00/nam",S9 cells 7-8 (F13)
+KD #7,Strategy,Ky thuat xu ly imbalanced anh huong chi phi kinh doanh the nao?,"Undersampling = ton tai (recall@P95 0.035-0.092, chi phi cao nhat). SMOTE + class_weight tang recall/F1. Chi phi toi uu: SMOTE 1:100 $170.45","S9 cell 9 (F5, F9)"

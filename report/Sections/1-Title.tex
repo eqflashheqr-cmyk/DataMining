@@ -1,0 +1,109 @@
+\begin{titlepage}
+\begin{center}
+NATIONAL ECONOMICS UNIVERSITY, HANOI \\
+COLLEGE OF TECHNOLOGY \\
+FACULTY OF DATA SCIENCE AND ARTIFICIAL INTELLIGENCE
+\end{center}
+
+\vspace{0.4cm}
+
+\begin{center}
+\includegraphics[width=3.4cm]{Images/NEU logo.png}
+\end{center}
+
+\vspace{0.4cm}
+
+\begin{center}
+\begin{tabular}{c}
+\multicolumn{1}{c}{\textbf{{\LARGE CREDIT CARD FRAUD DETECTION}}}\\
+\\[0.3cm]
+\hline
+\\[0.3cm]
+\multicolumn{1}{c}{\textbf{{\Large FINAL REPORT}}}\\
+\\[0.2cm]
+\textbf{{\Huge Topic: Credit Card Fraud Detection}}\\[0.2cm]
+\textbf{{\large Handling Class Imbalance and Designing a Cost-Aware Operating Policy}}\\
+\\[0.3cm]
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{0.9cm}
+
+\begin{center}
+\begin{tabular}{rrll}
+
+\hspace{5 cm} & Instructor: Ph.D. Nguyễn Trọng Nghĩa  & &\\
+
+& Student: &
+
+    Nguyễn Tuấn Sỹ & 11230775 \\
+& & Nguyễn Tiến Công & 11230739 \\
+& & Nguyễn Nho Thắng & 11230778 \\
+& & Nguyễn Quang Cường & 11230740 \\
+& & Nguyễn Gia Phong & 11230768 \\
+
+\end{tabular}
+\end{center}
+
+\vspace{0.45cm}
+
+\begin{center}
+\begin{tabular}{p{12.4cm}}
+\textbf{\textit{Abstract.}} Fraud detection on transactional data is an
+imbalanced, cost-sensitive problem: only 0.167\% of the 283{,}726 transactions
+in the ULB credit card dataset are fraudulent, so accuracy is uninformative
+and the operating point matters more than the classifier. We evaluate 27
+configurations spanning five model families (Logistic Regression, Decision
+Tree, Random Forest, XGBoost, Isolation Forest) and five imbalance-handling
+techniques under a leakage-controlled workflow, and we translate the winning
+model into a deployable operating policy. Random Forest with SMOTE at a 1:100
+ratio is selected (F1 = 0.8605, Average Precision = 0.8239), reaching 78.17\%
+recall at a 95\% precision floor, or 73.24\% with a leakage-free threshold.
+Central to the business answer is the capacity constraint: at 141{,}863
+transactions per day no single threshold can satisfy both the 95\% precision
+floor and a 100-review-per-day analyst capacity --- it either demands 1.9
+analysts or throttles recall to 40.9\%. A two-tier policy that auto-blocks
+above 0.810 and reviews only the 0.175--0.810 band resolves this, attaining
+81.0\% recall at USD 154.65 per 85{,}118 transactions with just 70 reviews per
+day --- an operational gain over the cheapest single threshold near that
+operating point, which needs 232 reviews per day for comparable recall. We also quantify the effect of tuning the
+threshold on the test set, report an observation consistent with a wider hyper-parameter
+search overfitting the cross-validation folds, and demonstrate that permutation
+importance and SHAP both rank \texttt{Amount} first where the default impurity
+importance ranks it 21st of 35.
+
+\vspace{0.25cm}
+\textbf{\textit{Keywords:}} credit card fraud detection; class imbalance;
+SMOTE; cost-sensitive learning; precision--recall trade-off; threshold
+calibration; operating policy; SHAP.
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+\begin{center}
+\begin{tabular}{p{9cm}}
+\textit{``All quantitative results reported in this document were produced by
+the authors' own pipeline. The source code, the six executed Jupyter
+notebooks and the underlying result tables are available on request; the
+random seed is fixed at 42 so that every figure in this report is exactly
+reproducible.''}
+\end{tabular}
+\end{center}
+
+\vfill
+
+\begin{center}
+{\footnotesize Hanoi, October 2026}
+\end{center}
+
+\end{titlepage}
+
+% The titlepage environment resets the page counter, which made the footer read
+% "Page 19/19" on a 20-page PDF. Restore the physical numbering so that the
+% printed page number always matches the page count.
+\setcounter{page}{2}
+
+\thispagestyle{empty}
+
+\tableofcontents

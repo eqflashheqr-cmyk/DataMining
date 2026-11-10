@@ -1,0 +1,10 @@
+Practice & project datasets
+Recommended starting points for your group project:
+
+Kaggle Datasets — large curated collection; filter by "CSV" format. Requires a free account.
+dataminingbook.com — 20+ datasets from the Shmueli et al. textbook, Excel- and Python-ready.
+UCI Machine Learning Repository — classic benchmark datasets for all major ML tasks.
+World Bank Open Data — macroeconomic and development indicators by country.
+Vietnam Statistics Office (GSO) — national statistics in Vietnamese and English.
+OECD Data — international comparisons across education, economy, health.
+A good project dataset has at least 200 rows, clearly named columns, and a concrete business question worth answering.

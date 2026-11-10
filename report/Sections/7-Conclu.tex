@@ -1,0 +1,59 @@
+\section{Conclusion}
+
+We developed and evaluated an end-to-end fraud detection pipeline for the ULB
+credit card dataset, treating the problem as a business decision problem rather
+than a pure classification exercise.
+
+\textbf{Methodologically}, we established a leakage-controlled workflow: a
+single persisted stratified split, resampling confined to training folds
+inside an \texttt{imblearn} pipeline, and scaler fitting inside the pipeline.
+Across 27 configurations spanning five model families and five imbalance
+techniques, Random Forest with SMOTE at a 1:100 ratio emerged as the strongest
+configuration, attaining F1 = 0.8605 and Average Precision = 0.8239 on the
+held-out test set.
+
+\textbf{Empirically}, we produced several findings that qualify common
+practice. Expanding the hyper-parameter search degraded test performance while
+improving cross-validated scores --- consistently across both model families,
+and consistent with overfitting of the search itself on a small minority class,
+though a single seed and a small CV gap do not establish this as a proof. Tuning the operating threshold on the test set
+inflated recall by 4.9 percentage points, which we quantified rather than
+assumed away. Logistic Regression's failure at the 95\% precision constraint
+traced to model capacity rather than to the class ratio. Random Undersampling,
+one of the most commonly taught techniques, was the most expensive approach and
+the only one that degraded every model family it was paired with. Finally, we
+showed that Random Forest's default impurity importance mis-ranks the single
+most informative feature, an error that would have gone undetected without
+permutation importance and SHAP.
+
+\textbf{Practically}, we converted predictive output into an operating policy,
+and this turned out to matter more than the model choice. A single threshold
+cannot simultaneously satisfy the 95\% precision floor and the
+100-review-per-day capacity that the brief imposes: at threshold 0.52 the
+workload is 193 reviews per day (1.9 analysts), while the tightest threshold
+that fits within one analyst's capacity collapses recall to 40.9\%. A
+\textbf{two-tier decision architecture} --- automatic blocking above 0.810,
+human review between 0.175 and 0.810, approval below --- resolves the
+dilemma: it attains \textbf{81.0\% recall} at a total cost of USD 154.65 per
+85{,}118 transactions while requiring only \textbf{70 analyst reviews per
+day}, one analyst's worth of work. Because auto-blocking consumes no analyst
+time, the two tiers can be tuned independently, and the result is an
+operational improvement rather than a re-labelling: the comparable recall
+reached by the cheapest single threshold near that operating point (0.1767,
+recall 0.8028) would need 232 reviews per day, more than twice the capacity. The model requires
+0.045 ms per transaction and under USD 2.30 per year in compute even at ten
+million transactions per day, so the constraint on deployment is
+infrastructure rather than modelling.
+
+\textbf{Finally}, we compared the model against four rule-based baselines. It
+caught more than twice as many frauds than the best rule while flagging 99.0\%
+fewer transactions, at one twenty-third of the cost. The contribution of
+machine learning here is not a marginally better metric; it is a fundamentally
+cheaper way of protecting both the bank and its customers.
+
+The honest headline result is that, at a 95\% precision constraint, our model
+catches roughly three quarters of all fraud, at a cost of USD 170 per 85{,}118
+transactions, and that the remaining quarter consists almost entirely of very
+small transactions that the available features cannot distinguish from
+ordinary purchases. Closing that gap requires better data, not a better
+algorithm.

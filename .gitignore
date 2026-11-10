@@ -1,0 +1,36 @@
+# ---- Data (public on Kaggle: "Credit Card Fraud Detection" by ULB) -------------
+creditcard.csv
+creditcard.csv.zip
+EDA_Credit_Card_Fraud.ipynb
+*.zip
+
+# ---- Trained models / large binary artifacts ---------------------------------
+artifacts/models/
+*.joblib
+*.npy
+
+# ---- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# ---- LaTeX build products -----------------------------------------------------
+report/main.aux
+report/main.bbl
+report/main.blg
+report/main.log
+report/main.out
+report/main.run.xml
+report/main.toc
+report/full.txt
+report/Sections/*.aux
+report/_backup_28p/
+
+# ---- OS / editor -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

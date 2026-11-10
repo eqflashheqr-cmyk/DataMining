@@ -1,0 +1,15 @@
+check,value
+shape_raw,"(284807, 31)"
+shape_clean,"(283726, 31)"
+missing_values_total,0
+duplicate_rows,1081
+duplicates_in_legit,1062
+duplicates_in_fraud,19
+fraud_count_clean,473
+legit_count_clean,283253
+imbalance_ratio_1_to,598.8
+amount_negative,0
+amount_zero,1808
+time_monotonic_increasing,True
+feature_count,30
+target_column,"Class (0=legit, 1=fraud)"

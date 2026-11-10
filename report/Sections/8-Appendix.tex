@@ -1,0 +1,76 @@
+\appendix
+\section{Reproducibility}
+\label{app:repro}
+
+All experiments were executed with Python 3.11.9 on Windows. The numerical
+core of the dependency set is pinned exactly in \texttt{requirements.txt}
+(pandas 2.3.3, numpy 2.2.6, scipy 1.17.1, scikit-learn 1.9.1,
+imbalanced-learn 0.14.2, xgboost 3.2.0, shap 0.51.0, joblib 1.6.0,
+matplotlib 3.10.9, seaborn 0.13.2, plotly 7.1.0); only the notebook tooling
+(jupyter, notebook) is left as a lower bound, since it does not affect any
+reported number. Every figure and table in this report can therefore be
+regenerated from the pinned versions alone. The global random
+seed is fixed at \textbf{42} in \texttt{src/config.py} and applied to the
+stratified split, every estimator, \texttt{GridSearchCV} and
+\texttt{permutation\_importance}. The stratified partition is computed once and
+persisted to \texttt{artifacts/models/split\_with\_features.joblib}; all
+subsequent notebooks load this file rather than re-splitting, which guarantees
+that every reported result refers to an identical partition.
+
+\begin{table}[h!]
+\centering
+\caption{Notebook pipeline. Each notebook is executed in order and reads only
+artefacts produced by its predecessors.}
+\label{tab:notebooks}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{4.7cm}p{4.5cm}p{3.6cm}}
+\toprule
+\textbf{Notebook} & \textbf{Purpose} & \textbf{Runtime} \\
+\midrule
+\texttt{00\_setup\_and\_split.ipynb} & Load, clean, stratified split, feature engineering & $<$ 1 min \\
+\texttt{01\_preprocessing.ipynb} & Scaler and feature-set ablation & $\sim$ 10 min \\
+\texttt{02\_imbalance\_benchmark.ipynb} & 27-configuration benchmark & $\sim$ 73 min \\
+\texttt{03\_model\_training.ipynb} & Final model selection and training & $\sim$ 48 min \\
+\texttt{04\_evaluation\_shap.ipynb} & Evaluation, threshold tuning, SHAP & $\sim$ 2 min \\
+\texttt{05\_cost\_analysis.ipynb} & Cost model, business questions & $<$ 1 min \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The deployed pipeline is \texttt{final\_model.joblib} (in
+\texttt{artifacts/models/}) with its metadata in
+\texttt{final\_model\_metadata.joblib}; the directory \texttt{artifacts/tables/}
+holds 44 result tables and \texttt{artifacts/charts/} 33 figures.
+Three implementation subtleties were resolved during the work and are recorded
+here because they affect reproducibility. First, because the split has already
+engineered the five new columns, the \texttt{ColumnTransformer} is declared
+with \texttt{remainder="drop"} and an explicit list of the columns to
+transform, so that any column not named is discarded deliberately rather than
+passed through by accident. Second, a pipeline
+containing a sampler must be built from \texttt{imblearn.pipeline.Pipeline},
+not \texttt{sklearn.pipeline.Pipeline}, otherwise the intermediate step fails the
+transformer contract. Third, the label arrays returned by the split retain the
+\emph{original} CSV row indices, which are not contiguous, so positional access
+must use \texttt{.iloc[]} rather than \texttt{[]}.
+
+\paragraph{Preprocessing detail.} The \texttt{ColumnTransformer} in the final
+pipeline declares two explicit transformers: a \texttt{StandardScaler} applied
+to \texttt{Time} and \texttt{Amount}, and a \texttt{pass-through} applied to the
+remaining 33 columns (\texttt{V1}--\texttt{V28} and the five engineered
+features). The scaler is therefore fitted inside the pipeline, on training data
+only. This design was chosen after comparing \texttt{StandardScaler},
+\texttt{RobustScaler} and no scaling: scaling affects the linear models
+strongly and the tree ensembles negligibly, so we retain
+\texttt{StandardScaler} as the simplest option that is correct for both.
+
+\paragraph{Daily-rate normalisation.} All per-day quantities reported in
+Section~\ref{sec:cost} are obtained by multiplying the corresponding test-set
+count by $5/3$. The derivation is: the cleaned dataset contains 283{,}726
+transactions spanning approximately 48 hours, i.e.\ 141{,}863 transactions per
+day; the test set contains 85{,}118 rows, i.e.\ $85{,}118 / 141{,}863 = 0.6$
+days of transaction stream. The factor $1/0.6 = 5/3$ therefore converts a
+test-set count into a daily rate. This normalisation was applied uniformly to
+workload, cost and staffing figures, and the corresponding tables are archived
+in \texttt{artifacts/tables/s10\_*.csv} together with the script
+\texttt{src/s10\_policy\_corrected.py} that regenerates them.

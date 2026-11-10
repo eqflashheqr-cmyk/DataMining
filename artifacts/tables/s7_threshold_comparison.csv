@@ -1,0 +1,3 @@
+Threshold method,threshold,precision,recall,f1,auc_pr,auc_roc,tp,fp,fn,tn,n_flagged,cost_usd
+Test-tuned (optimistic),0.52,0.9569,0.7817,0.8605,0.8239,0.9567,111,5,31,84971,116,170.45
+OOF-train clean (honest),0.65,0.963,0.7324,0.832,0.8239,0.9567,104,4,38,84972,108,208.3

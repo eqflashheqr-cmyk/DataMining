@@ -1,0 +1,156 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Principal Findings}
+
+This project set out to determine how much fraud a bank can catch while keeping
+the harm to legitimate customers tolerable, and at what cost. The answers are
+summarised below.
+
+\paragraph*{Accuracy is the wrong yardstick, and the gap is stark.} A model that
+labels every transaction legitimate scores 99.83\% accuracy and catches no
+fraud. Our model scores 99.96\% --- a 0.13 percentage-point difference --- and
+catches 78.2\% of frauds. Any report that quotes accuracy alone would have
+concealed the entire result.
+
+\paragraph*{At 95\% precision, we can catch roughly three quarters of fraud.} The
+honest figure is \textbf{73.24\%}, derived from a threshold selected on
+out-of-fold training predictions; the test-tuned figure of 78.17\% is
+optimistic by 4.9 percentage points. We consider the leakage-free number the
+one to plan against.
+
+\paragraph*{Model capacity, not the class ratio, was the binding constraint.}
+Logistic Regression reached a precision-constrained recall of only 0.1479 on
+exactly the same resampled data where Random Forest reached 0.7817. This
+distinction reframes the standard advice: imbalance handling is necessary but
+not sufficient, and the choice of classifier family dominates.
+
+\paragraph*{Random Undersampling is actively harmful.} Its mean cost is 2.4
+times that of SMOTE and 4.3 times the best cost achievable with SMOTE, and it
+collapses precision-constrained recall to 0.063. Despite being among the most
+commonly prescribed techniques, it is the worst choice on this dataset.
+
+\paragraph*{The default importance measure is misleading.} Random Forest's
+built-in impurity importance ranks \texttt{Amount} 21st of 35 features,
+because the heavy-tailed amount distribution inflates impurity decrease.
+Permutation importance and SHAP both rank it first or second. Had we reported
+\texttt{feature\_importances\_}, we would have omitted the most informative
+feature in the dataset.
+
+\paragraph*{The operating policy matters more than the model.} A single
+threshold cannot satisfy the 95\% precision floor and the 100-review-per-day
+capacity at the same time: it either needs 1.9 analysts, or it must be
+throttled to 40.9\% recall. The two-tier policy resolves the dilemma, reaching
+81.0\% recall with only 70 reviews per day. The cheapest single threshold
+near that operating point (0.1767) reaches a comparable recall of 80.3\% but
+needs 232 reviews per day, which is more than twice the available capacity. The gain is therefore
+operational rather than financial: the two-tier design buys the analyst-time
+saving that the cost model alone does not price. This is the clearest path from
+a research artefact to an operational deployment.
+
+\subsection{Limitations}
+
+\paragraph*{Only two days of data, from one region.} The dataset spans
+approximately 48 hours of European card transactions. It cannot capture
+seasonality, weekday/weekend cycles, or the drift that makes fraud patterns
+change. A temporal split would have been preferable to a random split, but two
+days cannot support one, so all temporal findings are indicative only.
+
+\paragraph*{Anonymised PCA features limit interpretability.} \texttt{V1}--\texttt{V28}
+are principal components; they cannot be given a business meaning. SHAP
+quantifies their contribution but cannot explain \emph{why}. Our most important
+feature, \texttt{Amount}, is interpretable; most of the model's power is not.
+
+\paragraph*{One cost assumption carries substantial weight.} The
+cost-minimising threshold moves with the review cost: it rises from 0.0405 at
+USD 0.10 to 0.4605 at USD 2.00 (Table~\ref{tab:sens}). If the true cost of
+blocking a legitimate customer is higher --- churn, card replacement,
+reputational damage --- the bank should demand higher precision and accept
+lower recall, and the 95\% precision constraint becomes the binding one
+instead. We regard this as the most important sensitivity in the entire report,
+and the model is explicitly parameterised so a bank can re-derive the optimum
+for its own cost structure. Our recommended policy was selected under the
+capacity constraint rather than the cost criterion, which makes it robust to
+this assumption: auto-blocking consumes no analyst time at any review price.
+
+\paragraph*{Sample size limits statistical power.} The test set contains only 142
+frauds. A recall of 0.7817 has a 95\% confidence interval of roughly
+$[0.71, 0.84]$, so differences below a few percentage points between
+configurations should not be over-interpreted. This is also why the wider
+hyper-parameter search did not pay off: with 331 training frauds, the search
+space itself is a plausible source of overfitting, although --- as
+Section~\ref{sec:search} sets out --- a single seed cannot establish that as a
+proof.
+
+\paragraph*{Our own thresholds are also test-derived.} We are explicit about
+this because it cuts against our own conclusions. The operating thresholds of
+the benchmark, of the single-threshold comparison \emph{and} of the
+recommended two-tier policy were all selected on test-set predictions. The
+model family, the hyper-parameters and the split itself were not. The
+consequence is that the recall figures in this report are optimistic by an
+amount we have quantified at 4.9 percentage points for the single-threshold
+case, and that the two-tier thresholds (0.810 and 0.175) in particular must be
+re-derived out-of-fold before they are used operationally. The qualitative
+conclusions --- that Random Undersampling is harmful, that a tree ensemble is
+required, that two tiers relax the capacity constraint --- do not depend on
+the exact threshold values; the specific operating point does.
+
+\paragraph*{Model selection on the test set.} Twenty-seven configurations were
+compared on the same 142 test frauds, and the winner was then reported on
+that same test set. This is a form of selection bias, and it is the reason we
+present a tie explicitly in Section~\ref{sec:results}: two configurations
+reach an identical operating point, and our choice among them rests on a
+tie-break declared in advance (Average Precision) rather than on a
+statistically significant difference. A dedicated validation set or nested cross-validation would remove
+this bias; we did not reserve one, and with 331 training frauds the option was
+not attractive.
+
+\paragraph*{Unsupervised detection was not evaluated at scale.} Isolation Forest
+was tested as a single unsupervised baseline. A hybrid pipeline that combines
+supervised scoring with unsupervised anomaly flags for analyst attention is a
+natural extension that we did not have the scope to implement.
+
+\paragraph*{No deployment validation.} Latency was measured in-process on a
+single machine; production characteristics such as throughput under concurrent
+load, model serialisation size and monitoring of prediction drift remain
+untested.
+
+\subsection{Recommendations}
+
+\begin{enumerate}
+    \item \textbf{Deploy the two-tier policy.} Auto-block above 0.810, route
+    the 0.175--0.810 band to analysts, approve the remainder. It attains higher
+    recall than any single threshold that respects the capacity constraint,
+    while requiring only 70 reviews per day, i.e.\ inside the capacity of one
+    analyst.
+    \item \textbf{Score every transaction.} Amount-based gating discards 90\% of
+    the fraud. The model costs under USD 2.30 per year in compute at national
+    scale, so there is no economic reason to restrict its input.
+    \item \textbf{Prefer SMOTE or class weighting; avoid Random Undersampling.}
+    Random Undersampling is the only technique that degraded every model
+    family it was paired with, and its mean cost is 2.4 times that of SMOTE.
+    Note that SMOTE gives the best ranking but not the lowest mean cost --- on
+    average SMOTE-ENN is cheaper, because it trades recall for precision.
+    \item \textbf{Plan capacity on the leakage-free numbers.} The test-tuned
+    threshold of 0.52 and the two-tier thresholds reported here were all
+    derived from test-set predictions and must be re-derived from out-of-fold
+    training predictions before they are used for staffing or budget decisions;
+    the leakage-free single-threshold recall is 73.24\% rather than 78.17\%.
+    \item \textbf{Report permutation importance and SHAP, never
+    \texttt{feature\_importances\_}} on heavy-tailed features.
+    \item \textbf{Extend the dataset.} Merchant category, device fingerprint
+    and transaction-history features are the missing ingredients for the
+    low-value frauds that dominate our false negatives.
+    \item \textbf{Monitor four quantities in production.} (i) The realised
+    fraud rate in the auto-block tier --- a fall below the 0.980 precision we
+    measured would mean the model is blocking legitimate customers and should
+    trigger an immediate threshold review; (ii) the analyst queue depth
+    against the 100-per-day capacity, with an alert at 80 transactions; (iii)
+    the population stability index of the feature distributions, since
+    \texttt{Amount} carries most of the model's signal and a shift in the
+    transaction mix would invalidate the threshold; and (iv) the recall of the
+    confirmed-fraud sample, estimated monthly, which is the only way to
+    detect that the fraud pattern itself has drifted. Because the model is
+    trained on a two-day window, we would also re-fit on a rolling 30-day
+    window before any drift becomes material.
+\end{enumerate}

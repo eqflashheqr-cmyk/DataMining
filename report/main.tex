@@ -1,0 +1,65 @@
+\documentclass[a4paper]{article}
+\usepackage{neu}
+\usepackage{booktabs}
+\usepackage{float}
+
+% Thêm gói trích dẫn
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+\addbibresource{main.bib}
+
+\begin{document}
+% Body text is set at \footnotesize (8 pt) to meet the 20-page limit while
+% keeping all 12 figures and all 18 result tables.
+\footnotesize
+% The body is set slightly below the default \footnotesize (8 pt) to keep the
+% report inside the 20-page limit while retaining 12 figures, 18 tables and
+% the full calibration and sensitivity analyses.
+\fontsize{7.8}{9.1}\selectfont
+% Captions are the most repeated element in the report; at 7 pt they remain
+% readable and release roughly one third of a page.
+\captionsetup{font={footnotesize},skip=2pt}
+% Allow slightly looser line breaking so that long unbreakable typewriter
+% strings (file names) and long references do not protrude into the margin.
+\setlength{\emergencystretch}{2em}
+% Tighten float separation: the report carries many floats (12 figures and
+% 18 tables) on 20 pages, so every millimetre of vertical padding around a
+% float is a millimetre of content.
+\setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
+\setlength{\floatsep}{5pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\dblfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{0pt}
+% Float placement: allow a float to occupy up to 88% of a page so that a large
+% figure is not pushed onto a page of its own, and require only a small
+% minimum of text on a float page. Without these the calibration and
+% feature-engineering figures each stranded most of a blank page.
+\renewcommand{\topfraction}{0.88}
+\renewcommand{\bottomfraction}{0.75}
+\renewcommand{\textfraction}{0.06}
+\renewcommand{\floatpagefraction}{0.80}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\setlength{\parskip}{0pt}
+\setlength{\parsep}{0pt}
+\setlength{\topsep}{3pt plus 1pt minus 1pt}
+\setlength{\itemsep}{1pt plus 1pt minus 1pt}
+\setlength{\parindent}{0pt}
+\include{Sections/1-Title}
+\include{Sections/2-Intro}
+\include{Sections/3-Method}
+\include{Sections/4-Results}
+\include{Sections/5-Cost}
+\include{Sections/6-Discuss}
+\include{Sections/7-Conclu}
+
+\newpage
+\appendix
+\include{Sections/8-Appendix}
+
+% In danh mục tài liệu tham khảo
+\printbibliography
+
+\end{document}

@@ -1,0 +1,227 @@
+\section{Introduction}
+
+\subsection{The Problem and Its Urgency}
+
+Credit card fraud has become one of the fastest-growing financial crimes worldwide.
+The Nilson Report estimates global card fraud losses at \textbf{USD 27.33 billion in
+2023}, with projections exceeding USD 40 billion by 2027 \cite{Nilson2024}. The
+problem is not only the direct loss. A 2024 LexisNexis study establishes that
+every \textbf{USD 1 lost to fraud costs financial institutions USD 4.45} to detect,
+prevent and compensate \cite{LexisNexis2024}. Beyond the direct financial damage,
+fraud has a corrosive effect on customer trust: a substantial share of fraud
+victims disengage from their bank within months of the incident.
+
+Banks respond with two operational levers that both carry hidden costs. They
+\emph{reject} suspicious transactions, which avoids fraud losses but punishes
+legitimate customers. They \emph{manually review} borderline cases, which is
+accurate but consumes scarce human analyst time. Traditional rule-based systems
+--- for example, "block every foreign transaction above \$X" --- are cheap to
+implement but are blunt instruments: they miss a large share of fraud while
+wrongly blocking ordinary customers. The core engineering problem is therefore
+not simply ``detect fraud'' but \emph{decide, per transaction, how confident we
+are, and what action that confidence justifies}.
+
+\subsection{Research Motivation}
+
+This project applies a supervised learning pipeline to the canonical credit card
+fraud dataset \cite{ULB2013}, but the evaluation philosophy is deliberately
+business-facing rather than metric-facing. Three commitments follow from this:
+
+\begin{enumerate}
+    \item \textbf{Accuracy is not a meaningful metric on this problem.} With a
+    class ratio of roughly 1:599, a classifier that labels \emph{every}
+    transaction legitimate scores 99.83\% accuracy while catching exactly zero
+    frauds. We therefore evaluate Recall, Precision, F1 and Average Precision.
+    \item \textbf{Imbalance handling must be justified economically.} SMOTE
+    \cite{Chawla2002}, Random Undersampling, SMOTE-ENN
+    \cite{Guo2008} and class weighting are all routinely prescribed. We compare
+    all of them and translate each into a monetary cost, because a technique that
+    improves a metric but explodes the analyst workload is worthless to a bank.
+    \item \textbf{The output must be an operating decision, not a probability.} A
+    bank needs to know which transactions to block automatically, which to send
+    to an analyst, and which to approve --- and what that policy costs per
+    million transactions.
+\end{enumerate}
+
+\subsection{Research Questions}
+
+The project is organised around four questions, each of which is answered
+by a specific part of this report:
+
+\begin{enumerate}
+    \item \textbf{RQ1 (Detection).} Which model family and imbalance-handling
+    technique maximise fraud detection on this dataset under a leakage-controlled
+    evaluation protocol? (Sections 3--4.)
+    \item \textbf{RQ2 (Cost).} At a precision floor of 95\%, what does each
+    operating point cost in monetary terms, and how does the ranking of
+    techniques change once a business cost is attached to a false alarm?
+    (Section 5.)
+    \item \textbf{RQ3 (Capacity).} What is the maximum fraud that can be
+    caught if the bank can review only 100 flagged transactions per day, and
+    what decision architecture satisfies that constraint? (Section 5.)
+    \item \textbf{RQ4 (Validity).} How much of the measured performance
+    survives the threats to validity that this design admits --- threshold
+    leakage, model selection on the test set, a two-day sample and a single
+    random seed? (Sections 4.5 and 6.2.)
+\end{enumerate}
+
+\subsection{Problem Definition}
+
+\begin{itemize}
+    \item \textbf{Input:} One credit card transaction, represented by 30 original
+    numerical attributes (\texttt{Time} in seconds since the first transaction,
+    \texttt{V1}--\texttt{V28} obtained by PCA, and \texttt{Amount} in USD),
+    extended by five engineered features (\texttt{Hour\_of\_Day}, \texttt{Day},
+    \texttt{Is\_Night}, \texttt{Amount\_log}, \texttt{Is\_Zero\_Amount}).
+    \item \textbf{Output:} A fraud probability, converted by a decision
+    threshold into one of three operational actions: \emph{auto-block},
+    \emph{manual review}, or \emph{approve}.
+    \item \textbf{Application:} Real-time transaction authorisation at the
+    issuing bank, as one decision stage inside the wider card-network risk
+    process. We model the decision itself --- what to score, at what cost, and
+    who acts on the output --- and make no claim about any specific vendor
+    product.
+\end{itemize}
+
+\subsection{Literature Review}
+
+\paragraph*{Imbalanced data as the central issue.}
+Dal Pozzolo et al. \cite{DalPozzolo2014} established that ``imbalanced data is
+the central issue in credit card fraud detection'' and combined SMOTE with a
+pairwise ranking learner, introducing calibration as a means of recovering
+probabilities under heavy resampling. Their contribution remains the standard
+baseline: SMOTE, evaluated with Average Precision rather than accuracy, and
+probabilities that can be thresholded meaningfully.
+
+\paragraph*{Comparative benchmarking.}
+West and Bhattacharya \cite{West2016} surveyed statistical methods for fraud
+detection and emphasised the gap between laboratory accuracy and operational
+performance. Leal-Avila et al. \cite{LealAvila2023} benchmarked Random Forest
+\cite{Breiman2001}, XGBoost \cite{Jian2013} and Isolation Forest on exactly the
+ULB dataset used here, confirming that tree ensembles are state of the art on
+this data while unsupervised anomaly detection is materially weaker.
+
+\paragraph*{Streaming and real-time deployment.}
+Carcillo et al. \cite{Carcillo2018} framed the problem as a streaming task and
+built SCARFF on Apache Spark, making the operational latency requirement
+explicit: scoring must complete within the authorisation window, not overnight.
+
+\paragraph*{The role of calibration.}
+Van Calster et al. \cite{VanCalster2019} showed that a model may rank
+transactions perfectly yet be badly calibrated, which matters directly when a
+threshold is chosen in business terms. Davis and Goadrich \cite{Davis2006}
+established the theoretical relationship between the precision--recall and ROC
+curves, justifying our choice of Average Precision as the primary metric on an
+imbalanced dataset \cite{Fawcett2006}.
+
+\paragraph*{Explainability as a requirement, not a luxury.}
+Under regulatory pressure for explainable AI, Lundberg and Lee \cite{Lundberg2017}
+introduced SHAP, with TreeSHAP \cite{Lundberg2020} providing exact Shapley
+values for tree ensembles. A bank must be able to answer ``why was this
+transaction blocked?'' to the customer and to the regulator.
+
+\paragraph*{The gap addressed by this project.}
+Existing work typically reports either predictive metrics or operational
+observations, rarely both in a single reproducible pipeline, and almost never
+converts the model output into a costed, three-tier operating policy evaluated
+against explicit rule-based baselines. This project connects all three: a
+reproducible pipeline, a rigorous model comparison across imbalance techniques,
+and a costed decision policy benchmarked against the rules a bank would
+otherwise deploy.
+
+\subsection{Contribution}
+
+Our contributions are: (i) an empirical, leakage-controlled comparison of five
+class-imbalance techniques across five model families on the ULB dataset; (ii) an
+observation that a wider hyper-parameter search \emph{degrades} test
+performance when only 331 fraud examples are available --- an observation we
+report with its statistical caveat rather than as a proof; (iii) a quantified
+assessment of the cost of each imbalance technique, including the mean-versus-best
+distinction that the technique ranking depends on; and (iv) a two-tier operating
+policy that attains higher recall than any single threshold that respects the
+100-per-day review capacity stated in the brief, while requiring only 70 analyst
+reviews per day.
+
+\subsection{Contribution of Group Members}
+Table~\ref{tab:contrib} records the individual contribution of each group
+member, documented so that it can be verified against the artefacts described
+in Appendix~\ref{app:repro}.
+
+\begin{table}[H]
+\centering
+\caption{Individual contributions of the group members.}
+\label{tab:contrib}
+\begin{tabular}{p{4.0cm}p{10.6cm}}
+\toprule
+\textbf{Member} & \textbf{Contribution} \\
+\midrule
+Nguyễn Tiến Công &
+Introduction, problem definition, research motivation, literature review and
+related work (Sections 1--2). \\
+\addlinespace
+Nguyễn Tuấn Sỹ &
+Methodology and reproducibility (Section 3 and Appendix~A): pipeline
+architecture, preprocessing, feature engineering, imbalance techniques,
+hyper-parameter search, leakage control. \\
+\addlinespace
+Nguyễn Nho Thắng &
+Results (Section 4): data quality, the 27-configuration imbalance benchmark,
+model selection, threshold-selection leakage, explainability. \\
+\addlinespace
+Nguyễn Quang Cường &
+Cost analysis and business decision (Section 5): cost model, analyst capacity,
+the two-tier operating policy, scalability, the seven business questions. \\
+\addlinespace
+Nguyễn Gia Phong &
+Discussion, limitations, recommendations and conclusion (Sections 6--7), plus
+delivery of the presentation. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Related Work and Background}
+\label{sec:background}
+
+\subsection{Class Imbalance and Resampling}
+
+The imbalance ratio here is 1:599, well beyond the point at which standard
+cross-entropy training effectively ignores the minority class \cite{Guo2008}.
+SMOTE \cite{Chawla2002} synthesises minority points by interpolating between
+k-nearest minority neighbours, preserving the local geometry of the fraud
+cluster. Random Undersampling instead discards majority examples, which is cheap
+but destroys information and, as we demonstrate empirically, is the most
+damaging of the techniques we test. SMOTE-ENN combines both and then removes
+samples whose nearest neighbours are of mixed class.
+
+\subsection{Model Families}
+
+Logistic Regression serves as the linear baseline. Decision Tree provides
+complete interpretability but high variance. Random Forest \cite{Breiman2001}
+averages deep trees on bootstrap samples, making it robust to the heavy-tailed
+amount distribution. XGBoost \cite{Jian2013} fits trees greedily with second-order
+information and regularisation, typically the strongest tabular learner.
+Isolation Forest detects anomalies by measuring the average path length of
+isolated points and requires no labels, which we use to test whether fraud is
+detectable as a pure anomaly.
+
+\subsection{Metrics and Evaluation}
+
+For a $1:599$ ratio, Accuracy is uninformative and AUC-ROC is dominated by the
+negative class \cite{Fawcett2006}. Average Precision --- the area under the
+precision--recall curve --- is the appropriate summary statistic
+\cite{Davis2006}. Because the operating threshold is a business decision, we
+report the full precision--recall curve and select thresholds subject to a
+precision constraint of 95\%, corresponding to blocking at most five in every
+one hundred flagged transactions.
+
+\subsection{Cost Model}
+
+We adopt a transparent cost model. A missed fraud costs
+\textbf{USD 5.45} (USD 1.00 direct loss plus USD 4.45 handling, per
+\cite{LexisNexis2024}). A false alarm costs \textbf{USD 0.30}, our own
+assumption for a manual review. Total cost is therefore
+\[
+    C = n_{FN} \cdot 5.45 \;+\; n_{FP} \cdot 0.30 .
+\]
+Every conclusion in Section~\ref{sec:cost} is expressed under this model, and we
+explicitly state in Section~\ref{sec:discussion} which conclusions depend on it.
